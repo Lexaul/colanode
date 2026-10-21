@@ -119,6 +119,91 @@ describe('file uploads', () => {
     const attributes = node?.attributes as { status?: number } | null;
     expect(attributes?.status).toBe(FileStatus.Ready);
   });
+
+  it('accepts a proxy chain proto and returns API CORS headers', async () => {
+    const account = await createAccount({
+      email: 'upload-proxy@example.com',
+    });
+
+    const workspace = await createWorkspace({
+      createdBy: account.id,
+    });
+
+    const user = await createUser({
+      workspaceId: workspace.id,
+      account,
+      role: 'owner',
+    });
+
+    const { token } = await createDevice({ accountId: account.id });
+
+    const rootId = await createSpaceNode({
+      workspaceId: workspace.id,
+      userId: user.id,
+    });
+
+    const fileId = await createFileNode({
+      workspaceId: workspace.id,
+      userId: user.id,
+      parentId: rootId,
+      rootId,
+      size: 11,
+      name: 'proxy.txt',
+      extension: '.txt',
+    });
+
+    const uploadUrl = `/client/v1/workspaces/${workspace.id}/files/${fileId}/tus`;
+    const headers = {
+      ...buildAuthHeader(token),
+      host: 'noteserver.cystar.work',
+      origin: 'http://localhost:4000',
+      'x-forwarded-proto': 'https, https',
+    };
+
+    const invalidLength = await app.inject({
+      method: 'POST',
+      url: uploadUrl,
+      headers: {
+        ...headers,
+        'Tus-Resumable': '1.0.0',
+        'Upload-Length': 'nope',
+      },
+    });
+
+    expect(invalidLength.statusCode).toBe(400);
+    expect(invalidLength.body).toContain('Invalid upload-length');
+    expect(invalidLength.headers['access-control-allow-origin']).toBe(
+      'http://localhost:4000'
+    );
+    expect(invalidLength.headers['access-control-allow-credentials']).toBe(
+      'true'
+    );
+    expect(
+      String(invalidLength.headers['access-control-expose-headers'])
+    ).toContain('Location');
+
+    const createResponse = await app.inject({
+      method: 'POST',
+      url: uploadUrl,
+      headers: {
+        ...headers,
+        'Tus-Resumable': '1.0.0',
+        'Upload-Length': '11',
+      },
+    });
+
+    expect(createResponse.statusCode).toBe(201);
+    expect(createResponse.headers.location).toBe(
+      `https://noteserver.cystar.work${uploadUrl}`
+    );
+    expect(createResponse.headers['access-control-allow-origin']).toBe(
+      'http://localhost:4000'
+    );
+    expect(createResponse.headers['access-control-allow-credentials']).toBe(
+      'true'
+    );
+    expect(createResponse.headers['access-control-allow-origin']).not.toBe('*');
+  });
 });
 
 describe('file download guards', () => {

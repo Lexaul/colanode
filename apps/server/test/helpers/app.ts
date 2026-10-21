@@ -11,7 +11,9 @@ import { corsPlugin } from '@colanode/server/api/client/plugins/cors';
 import { errorHandler } from '@colanode/server/api/client/plugins/error-handler';
 
 export const buildTestApp = (): FastifyInstance => {
-  const app = fastify();
+  const app = fastify({
+    trustProxy: true,
+  });
 
   app.register(errorHandler);
   app.setSerializerCompiler(serializerCompiler);

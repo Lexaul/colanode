@@ -10,6 +10,7 @@ import { jobsConfigSchema } from './jobs';
 import { loggingConfigSchema } from './logging';
 import { postgresConfigSchema } from './postgres';
 import { redisConfigSchema } from './redis';
+import { serverConfigSchema } from './server';
 import { storageConfigSchema } from './storage';
 import {
   resolveConfigReference,
@@ -32,6 +33,7 @@ const configSchema = z.object({
     .default('standalone')
     .transform(resolveConfigReference),
   pathPrefix: z.string().optional().transform(resolveOptionalConfigReference),
+  server: serverConfigSchema,
   cors: corsSchema,
   account: accountConfigSchema,
   postgres: postgresConfigSchema,

@@ -7,6 +7,9 @@
     "domain": "localhost:4000"
   },
   "mode": "standalone",
+  "server": {
+    "_comment": "Optional. Set url to the public origin of this API (for example \"https://noteserver.example.com\") when proxies cannot provide a single http or https X-Forwarded-Proto. Generated links, including the TUS upload Location, then use that origin instead of the incoming request. Only the origin is kept; a path is ignored, so use pathPrefix for a subpath. Omit url to derive the origin from the request. Supports env://VAR_NAME."
+  },
   "cors": {
     "origin": "http://localhost:4000",
     "maxAge": 7200

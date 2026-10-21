@@ -12,10 +12,14 @@ import {
 import { database } from '@colanode/server/data/database';
 import { redis } from '@colanode/server/data/redis';
 import { config } from '@colanode/server/lib/config';
-import { generateUrl } from '@colanode/server/lib/fastify';
+import {
+  generateUrl,
+  normalizeForwardedProto,
+} from '@colanode/server/lib/fastify';
 import { mapNode, updateNode } from '@colanode/server/lib/nodes';
 import { storage } from '@colanode/server/lib/storage';
 import { RedisLocker } from '@colanode/server/lib/storage/tus/redis-locker';
+import { applyTusResponseCors } from '@colanode/server/lib/tus-cors';
 
 const tryDeleteFile = async (path: string): Promise<void> => {
   try {
@@ -84,6 +88,7 @@ export const fileUploadTusRoute: FastifyPluginCallbackZod = (
       }
 
       const path = `files/${workspaceId}/${fileId}_${file.version}${file.extension}`;
+      normalizeForwardedProto(request);
       const url = generateUrl(
         request,
         `/client/v1/workspaces/${workspaceId}/files/${fileId}/tus`
@@ -242,6 +247,7 @@ export const fileUploadTusRoute: FastifyPluginCallbackZod = (
         },
       });
 
+      applyTusResponseCors(reply);
       await tusServer.handle(request.raw, reply.raw);
     },
   });
